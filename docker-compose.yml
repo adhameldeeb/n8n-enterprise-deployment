@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2.7.4
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy/data:/data
+      - ./data/caddy/config:/config
+    networks:
+      - n8n-network
+
+  n8n-primary:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    environment:
+      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      # Queue mode configuration
+      - N8N_QUEUE_BULL_REDIS_HOST=${QUEUE_HOST}
+      - N8N_QUEUE_BULL_REDIS_PORT=${QUEUE_PORT}
+      - N8N_QUEUE_BULL_REDIS_USERNAME=${QUEUE_USER}
+      - N8N_QUEUE_BULL_REDIS_PASSWORD=${QUEUE_PASSWORD}
+      - N8N_QUEUE_BULL_REDIS_SSL=true
+      # Database configuration
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=${DB_HOST}
+      - DB_POSTGRESDB_PORT=${DB_PORT}
+      - DB_POSTGRESDB_DATABASE=${DB_DATABASE}
+      - DB_POSTGRESDB_USER=${DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      - DB_POSTGRESDB_SSL_CA=/root/ca-certificate.crt
+      # Primary-specific settings
+      - N8N_SKIP_WEBHOOK_DEREGISTRATION_SHUTDOWN=true
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_PREFIX=n8n-queue
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+      - ./config/certs/ca-certificate.crt:/root/ca-certificate.crt:ro
+    networks:
+      - n8n-network
+
+  n8n-webhook:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    command: n8n start --skip-migrations
+    environment:
+      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      # Queue mode configuration
+      - N8N_QUEUE_BULL_REDIS_HOST=${QUEUE_HOST}
+      - N8N_QUEUE_BULL_REDIS_PORT=${QUEUE_PORT}
+      - N8N_QUEUE_BULL_REDIS_USERNAME=${QUEUE_USER}
+      - N8N_QUEUE_BULL_REDIS_PASSWORD=${QUEUE_PASSWORD}
+      - N8N_QUEUE_BULL_REDIS_SSL=true
+      # Database configuration
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=${DB_HOST}
+      - DB_POSTGRESDB_PORT=${DB_PORT}
+      - DB_POSTGRESDB_DATABASE=${DB_DATABASE}
+      - DB_POSTGRESDB_USER=${DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      - DB_POSTGRESDB_SSL_CA=/root/ca-certificate.crt
+      # Webhook-specific settings
+      - EXECUTIONS_MODE=queue
+      - EXECUTIONS_PROCESS=webhook
+      - QUEUE_BULL_PREFIX=n8n-queue
+    volumes:
+      - ./config/certs/ca-certificate.crt:/root/ca-certificate.crt:ro
+    networks:
+      - n8n-network
+      
+  n8n-worker:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    command: n8n start --skip-migrations
+    environment:
+      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      # Queue mode configuration
+      - N8N_QUEUE_BULL_REDIS_HOST=${QUEUE_HOST}
+      - N8N_QUEUE_BULL_REDIS_PORT=${QUEUE_PORT}
+      - N8N_QUEUE_BULL_REDIS_USERNAME=${QUEUE_USER}
+      - N8N_QUEUE_BULL_REDIS_PASSWORD=${QUEUE_PASSWORD}
+      - N8N_QUEUE_BULL_REDIS_SSL=true
+      # Database configuration
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=${DB_HOST}
+      - DB_POSTGRESDB_PORT=${DB_PORT}
+      - DB_POSTGRESDB_DATABASE=${DB_DATABASE}
+      - DB_POSTGRESDB_USER=${DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      - DB_POSTGRESDB_SSL_CA=/root/ca-certificate.crt
+      # Worker-specific settings
+      - EXECUTIONS_MODE=queue
+      - EXECUTIONS_PROCESS=worker
+      - QUEUE_BULL_PREFIX=n8n-queue
+      - N8N_CONCURRENCY=${WORKER_CONCURRENCY}
+    volumes:
+      - ./config/certs/ca-certificate.crt:/root/ca-certificate.crt:ro
+    networks:
+      - n8n-network
+  
+networks:
+  n8n-network:
+    driver: bridge
