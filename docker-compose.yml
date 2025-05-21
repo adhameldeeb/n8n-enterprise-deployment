@@ -14,6 +14,17 @@ services:
     networks:
       - n8n-network
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    ports:
+      - "6333:6333" # gRPC
+      - "6334:6334" # HTTP
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    networks:
+      - n8n-network
+
   n8n-primary:
     image: docker.n8n.io/n8nio/n8n
     restart: always
@@ -40,6 +51,15 @@ services:
       - EXECUTIONS_MODE=queue
       - QUEUE_BULL_PREFIX=n8n-queue
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      # LLM API Configuration
+      - N8N_LLM_PROVIDER_OPENROUTER_API_KEY=${N8N_LLM_PROVIDER_OPENROUTER_API_KEY}
+      - N8N_LLM_PROVIDER_AMAZONBEDROCK_ACCESS_KEY_ID=${N8N_LLM_PROVIDER_AMAZONBEDROCK_ACCESS_KEY_ID}
+      - N8N_LLM_PROVIDER_AMAZONBEDROCK_SECRET_ACCESS_KEY=${N8N_LLM_PROVIDER_AMAZONBEDROCK_SECRET_ACCESS_KEY}
+      - N8N_LLM_PROVIDER_AMAZONBEDROCK_REGION=${N8N_LLM_PROVIDER_AMAZONBEDROCK_REGION}
+      # Vector Database Configuration (Qdrant)
+      - N8N_VECTOR_DB_QDRANT_HOST=${N8N_VECTOR_DB_QDRANT_HOST}
+      - N8N_VECTOR_DB_QDRANT_PORT=${N8N_VECTOR_DB_QDRANT_PORT}
+      - N8N_VECTOR_DB_QDRANT_API_KEY=${N8N_VECTOR_DB_QDRANT_API_KEY}
     volumes:
       - ./data/n8n:/home/node/.n8n
       - ./config/certs/ca-certificate.crt:/root/ca-certificate.crt:ro
